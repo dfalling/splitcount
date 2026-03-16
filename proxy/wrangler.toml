@@ -1,6 +1,0 @@
-name = "splitcount-mcp"
-main = "src/index.ts"
-compatibility_date = "2025-01-01"
-
-[vars]
-UPSTREAM = "https://jjwhkljwhzacodjkfyyf.supabase.co/functions/v1/mcp"
