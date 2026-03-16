@@ -30,10 +30,6 @@ supabase db execute --sql "SELECT pg_notify('pgrst', 'reload schema');" 2>/dev/n
 echo "Deploying mcp edge function..."
 supabase functions deploy mcp --no-verify-jwt
 
-echo "Deploying proxy worker..."
-cd proxy && npx wrangler deploy && cd ..
-
 echo ""
 echo "Deploy complete."
-echo "Direct Supabase URL (API calls): https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/mcp"
-echo "Connector URL (Claude Desktop/web/mobile): see worker URL printed by wrangler above"
+echo "Connector URL: https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/mcp"
