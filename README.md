@@ -12,56 +12,37 @@ Expense splitting via MCP + Claude. Log expenses (including receipt photos), tra
 
 ### 1. Create a Supabase project
 
-Go to [supabase.com](https://supabase.com), create a new project, and note your:
-- Project URL: `https://<ref>.supabase.co`
-- Service role key (Settings → API)
-- Anon key (Settings → API)
+Go to [supabase.com](https://supabase.com), create a new project, and note your project ref (visible in the project URL or Settings → General).
 
-### 2. Run the migration
+### 2. Set your project ref
 
-In the Supabase dashboard → SQL Editor, run the contents of:
-```
-supabase/migrations/20260315000000_initial_schema.sql
-```
-
-Or with the Supabase CLI:
+Add to `.envrc` (used by [direnv](https://direnv.net/)):
 ```bash
-supabase link --project-ref <your-ref>
-supabase db push
+export SUPABASE_PROJECT_REF=<your-ref>
 ```
 
-### 3. Deploy the Edge Function
+Or export it manually:
+```bash
+export SUPABASE_PROJECT_REF=<your-ref>
+```
+
+### 3. Deploy
 
 ```bash
-supabase functions deploy mcp --no-verify-jwt
+make deploy
 ```
 
-The `--no-verify-jwt` flag is required since MCP clients don't send Supabase JWTs.
-
-Your MCP server URL will be:
+This links to your project, pushes database migrations, and deploys the MCP edge function. Your server URL will be printed at the end:
 ```
 https://<your-ref>.supabase.co/functions/v1/mcp
 ```
 
-### 4. Configure your MCP client
+### 4. Add as a custom connector
 
-**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "splitcount": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://<your-ref>.supabase.co/functions/v1/mcp"]
-    }
-  }
-}
+In Claude Desktop or Claude.ai settings, add a custom MCP connector with your server URL:
 ```
-
-> Uses [`mcp-remote`](https://github.com/geelen/mcp-remote) to bridge HTTP MCP servers to the Claude Desktop stdio transport.
-
-**Claude.ai** (MCP integrations):
-Add the server URL directly: `https://<your-ref>.supabase.co/functions/v1/mcp`
+https://<your-ref>.supabase.co/functions/v1/mcp
+```
 
 ## Usage
 
