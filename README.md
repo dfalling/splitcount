@@ -25,13 +25,7 @@ services:
     restart: unless-stopped
 ```
 
-Or run the full stack including Postgres:
-
-```bash
-docker compose up -d
-```
-
-The server will be available at `http://localhost:3000`.
+The server will be available at `http://your-server:3000`.
 
 ### Connect to Claude
 
