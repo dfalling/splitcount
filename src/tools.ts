@@ -183,7 +183,8 @@ export const TOOLS = [
         expense_id: { type: "string", description: "Expense UUID to update" },
         member_id: {
           type: "string",
-          description: "Your member_id (must be the member who logged the expense)",
+          description:
+            "Your member_id (must be the member who logged the expense)",
         },
         description: { type: "string", description: "New description" },
         amount: {
@@ -204,15 +205,20 @@ export const TOOLS = [
           pattern: "^\\d{4}-\\d{2}-\\d{2}$",
           description: "Date of the expense in YYYY-MM-DD format",
         },
-        receipt_note: { type: "string", description: "Updated receipt summary" },
+        receipt_note: {
+          type: "string",
+          description: "Updated receipt summary",
+        },
         original_amount: {
           type: "number",
           exclusiveMinimum: 0,
-          description: "Amount in the original foreign currency. Must be paired with original_currency.",
+          description:
+            "Amount in the original foreign currency. Must be paired with original_currency.",
         },
         original_currency: {
           type: "string",
-          description: "ISO 4217 code of the original currency. Must be paired with original_amount.",
+          description:
+            "ISO 4217 code of the original currency. Must be paired with original_amount.",
         },
         split_type: {
           type: "string",
@@ -222,11 +228,13 @@ export const TOOLS = [
         split_with: {
           type: "array",
           items: { type: "string" },
-          description: "member_ids to split among (replaces existing participants)",
+          description:
+            "member_ids to split among (replaces existing participants)",
         },
         splits: {
           type: "array",
-          description: "Required for exact/percent. Array of { member_id, amount } or { member_id, percent }",
+          description:
+            "Required for exact/percent. Array of { member_id, amount } or { member_id, percent }",
           items: {
             type: "object",
             properties: {
@@ -300,7 +308,8 @@ export const TOOLS = [
         group_id: { type: "string", description: "Group UUID" },
         member_id: {
           type: "string",
-          description: "Your member_id (must be an existing member of the group)",
+          description:
+            "Your member_id (must be an existing member of the group)",
         },
         display_name: {
           type: "string",
