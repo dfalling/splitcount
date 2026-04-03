@@ -1,1 +1,2 @@
-export SUPABASE_PROJECT_REF=your-project-ref-here
+export DATABASE_URL=postgres://splitcount:password@localhost:5432/splitcount
+export PORT=3000
