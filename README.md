@@ -4,44 +4,58 @@ Expense splitting via MCP + Claude. Log expenses (including receipt photos), tra
 
 ## Architecture
 
-- **MCP server**: Supabase Edge Function (Deno) at `supabase/functions/mcp/`
-- **Database**: Supabase PostgreSQL (groups, members, expenses, splits, settlements)
+- **MCP server**: Bun HTTP server at `src/`
+- **Database**: PostgreSQL (self-hosted or any provider)
 - **Client**: Any MCP-compatible client (Claude Desktop, Claude.ai, etc.)
 
-## Setup
+Migrations run automatically on startup. No migration tooling required.
 
-### 1. Create a Supabase project
+## Self-hosting with Docker
 
-Go to [supabase.com](https://supabase.com), create a new project, and note your project ref (visible in the project URL or Settings → General).
+The easiest way to run SplitCount is with Docker Compose. Add it to your existing stack:
 
-### 2. Set your project ref
+```yaml
+services:
+  splitcount:
+    image: ghcr.io/dfalling/splitcount:latest
+    environment:
+      DATABASE_URL: postgres://user:password@your-postgres-host:5432/splitcount
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+```
 
-Add to `.envrc` (used by [direnv](https://direnv.net/)):
+The server will be available at `http://your-server:3000`.
+
+### Connect to Claude
+
+In Claude Desktop or Claude.ai settings, add a custom MCP connector:
+```
+http://your-server:3000
+```
+
+## Local development
+
+**Prerequisites**: [mise](https://mise.jdx.dev/) for version management.
+
 ```bash
-export SUPABASE_PROJECT_REF=<your-ref>
+mise install          # installs bun
+bun install           # install dependencies
+cp .envrc.example .envrc
+# edit .envrc with your DATABASE_URL
+bun run dev           # start with hot reload
 ```
 
-Or export it manually:
+Test the server:
 ```bash
-export SUPABASE_PROJECT_REF=<your-ref>
+curl -X POST http://localhost:3000 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
-### 3. Deploy
-
+Health check:
 ```bash
-make deploy
-```
-
-This links to your project, pushes database migrations, and deploys the MCP edge function. Your server URL will be printed at the end:
-```
-https://<your-ref>.supabase.co/functions/v1/mcp
-```
-
-### 4. Add as a custom connector
-
-In Claude Desktop or Claude.ai settings, add a custom MCP connector with your server URL:
-```
-https://<your-ref>.supabase.co/functions/v1/mcp
+curl http://localhost:3000?health
 ```
 
 ## Usage
@@ -49,18 +63,20 @@ https://<your-ref>.supabase.co/functions/v1/mcp
 ### Create a group
 > "Create a new expense group called 'Barcelona Trip' with my name as Alex"
 
-Claude will return a **6-character join code** (e.g. `XK7M2P`) and your **member_id**. Share the join code with friends.
+Claude returns a **6-character join code** (e.g. `XK7M2P`) and your **member_id**. Share the join code with friends.
 
 ### Join a group
-> "Join group XK7M2P, my name is Jordan"
+> "Join group XK7M2P"
+
+Claude will show you the existing member list so you can claim your slot or join as someone new.
 
 ### Log an expense
 > "Log a $45 dinner expense, I paid, split equally among everyone"
 
-**From a receipt photo**: Share the image with Claude, then ask it to log it:
+**From a receipt photo**: share the image with Claude, then ask it to log it:
 > "Here's my receipt [image]. Add it as an expense split equally."
 
-Claude will read the receipt, extract the amount and description, and call `add_expense` with the details.
+Claude reads the receipt, extracts the amount and description, and calls `add_expense`.
 
 ### Check balances
 > "Who owes what in our group?"
@@ -70,9 +86,9 @@ Claude will read the receipt, extract the amount and description, and call `add_
 
 ## Identity model
 
-There is no login. When you create or join a group, you receive a **member_id** (UUID). This is your permanent identity — save it. Claude stores it in conversation context and will remind you to note it down.
+There is no login. When you create or join a group you receive a **member_id** (UUID). This is your permanent identity — save it. Claude stores it in conversation context and will remind you to note it down.
 
-If you switch devices or start a new conversation, use `get_member` to confirm your identity:
+If you start a new conversation, use `get_member` to confirm your identity:
 > "My member ID is abc123... — what group am I in?"
 
 ## Tools
@@ -80,27 +96,21 @@ If you switch devices or start a new conversation, use `get_member` to confirm y
 | Tool | Description |
 |------|-------------|
 | `create_group` | Create a group, get a join code |
-| `join_group` | Join with a join code + display name |
+| `join_group` | Join with a join code; shows member list to claim or create |
 | `get_group` | Group info and member list |
 | `add_expense` | Log an expense (equal/exact/percent splits) |
 | `list_expenses` | View expenses with split details |
+| `update_expense` | Edit an expense you logged |
 | `delete_expense` | Soft-delete an expense you logged |
 | `get_balances` | Net balances + minimum payments to settle |
 | `record_settlement` | Record a payment between members |
 | `get_settlement_history` | Past settlements |
+| `add_member` | Pre-add a member before they join |
+| `claim_member` | Identify as an existing member |
+| `list_members` | List all members in a group |
 | `get_member` | Look up your member info |
 | `rename_member` | Change your display name |
 
-## Local development
+## Database migrations
 
-```bash
-supabase start          # starts local Postgres + Edge Functions runtime
-supabase functions serve mcp --no-verify-jwt
-```
-
-Test with curl:
-```bash
-curl -X POST http://localhost:54321/functions/v1/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
-```
+Migrations live in `migrations/` and are applied automatically at startup in order. To add a new migration, create a file named `NNN_description.sql` (e.g. `005_add_tags.sql`).

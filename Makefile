@@ -1,6 +1,22 @@
-.PHONY: deploy
+.PHONY: install dev start typecheck docker-build docker-up docker-down
 
-# Deploy migrations and edge function.
-# Requires SUPABASE_PROJECT_REF to be set (via .envrc + direnv, or exported manually).
-deploy:
-	./scripts/deploy.sh
+install:
+	bun install
+
+dev:
+	bun run --watch src/index.ts
+
+start:
+	bun run src/index.ts
+
+typecheck:
+	bun run tsc --noEmit
+
+docker-build:
+	docker build -t splitcount .
+
+docker-up:
+	docker compose up --build -d
+
+docker-down:
+	docker compose down
