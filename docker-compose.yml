@@ -1,0 +1,29 @@
+services:
+  splitcount:
+    build: .
+    environment:
+      DATABASE_URL: postgres://splitcount:password@db:5432/splitcount
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: splitcount
+      POSTGRES_USER: splitcount
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U splitcount -d splitcount"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -12,7 +12,6 @@ export interface SettlementSuggestion {
   amount: number;
 }
 
-/** Compute per-member net balance from raw DB rows. */
 export function computeNetBalances(
   members: Array<{ id: string; display_name: string }>,
   expenses: Array<{
