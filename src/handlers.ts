@@ -324,7 +324,7 @@ export async function addExpense(
       ${amount}::numeric,
       ${currency},
       ${receipt_note ?? null},
-      ${JSON.stringify(splitsPayload)}::jsonb,
+      ${db.json(splitsPayload)}::jsonb,
       ${original_amount ?? null}::numeric,
       ${original_currency?.toUpperCase() ?? null},
       ${date ?? null}::date
@@ -877,7 +877,7 @@ export async function updateExpense(
       ${original_amount ?? null}::numeric,
       ${original_currency?.toUpperCase() ?? null},
       ${false}::boolean,
-      ${splitsPayload !== null ? JSON.stringify(splitsPayload) : null}::jsonb
+      ${splitsPayload !== null ? db.json(splitsPayload) : null}::jsonb
     ) AS expense_id
   `;
 
