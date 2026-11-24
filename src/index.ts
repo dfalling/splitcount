@@ -1,3 +1,4 @@
+import type { Server } from "bun";
 import postgres from "postgres";
 import { handleToolCall } from "./handlers";
 import { runMigrations } from "./migrate";
@@ -10,6 +11,35 @@ if (!DATABASE_URL) {
 }
 
 const sql = postgres(DATABASE_URL);
+
+// Per-IP rate limits for the unauthenticated entry points. join_group is the
+// join-code guessing path, so every call counts, including the member lookup.
+const LIMITS: Record<string, number> = {
+  create_group: Number(process.env.CREATE_LIMIT_PER_HOUR ?? 10),
+  join_group: Number(process.env.JOIN_LIMIT_PER_HOUR ?? 20),
+};
+const attempts = new Map<string, number[]>();
+
+function clientIp(req: Request, server: Server<undefined>): string {
+  // Caddy sets X-Forwarded-For, replacing anything the client sent.
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    server.requestIP(req)?.address ??
+    "unknown"
+  );
+}
+
+function allow(tool: string, ip: string): boolean {
+  const limit = LIMITS[tool];
+  if (limit === undefined) return true;
+  const key = `${tool}:${ip}`;
+  const now = Date.now();
+  const recent = (attempts.get(key) ?? []).filter((t) => now - t < 3_600_000);
+  if (recent.length >= limit) return false;
+  recent.push(now);
+  attempts.set(key, recent);
+  return true;
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -40,7 +70,8 @@ console.log(`[splitcount] listening on port ${port}`);
 
 Bun.serve({
   port,
-  async fetch(req: Request): Promise<Response> {
+  maxRequestBodySize: 100_000,
+  async fetch(req: Request, server: Server<undefined>): Promise<Response> {
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }
@@ -107,6 +138,17 @@ Bun.serve({
             name: string;
             arguments: Record<string, unknown>;
           };
+          if (!allow(toolName, clientIp(req, server))) {
+            return rpcOk(id, {
+              content: [
+                {
+                  type: "text",
+                  text: `Too many ${toolName} requests from your network. Please try again in about an hour.`,
+                },
+              ],
+              isError: true,
+            });
+          }
           const result = await handleToolCall(sql, toolName, toolArgs ?? {});
           return rpcOk(id, result);
         }
